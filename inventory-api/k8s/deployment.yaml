@@ -1,0 +1,50 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-api
+  labels:
+    app: inventory-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inventory-api
+  template:
+    metadata:
+      labels:
+        app: inventory-api
+    spec:
+      containers:
+        - name: inventory-api
+          image: inventory-api:0.0.1-SNAPSHOT
+          ports:
+            - containerPort: 8080
+          # VULNERABILITY: Gross over-provisioning.
+          # This lightweight service needs ~0.25 CPU and ~256Mi at most.
+          # Requesting 4 CPU / 8Gi wastes cluster capacity, raises cloud
+          # costs, and can starve other workloads of resources.
+          resources:
+            requests:
+              cpu: "4"
+              memory: "8Gi"
+            limits:
+              cpu: "4"
+              memory: "8Gi"
+          env:
+            # Passing the hardcoded key from application.properties through
+            # an env-var does not help when the source is still plain-text.
+            - name: APP_API_KEY
+              value: "a3f8c2d1-9b47-4e6f-82aa-deadbeef0001"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-api
+spec:
+  selector:
+    app: inventory-api
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: ClusterIP
