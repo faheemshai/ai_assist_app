@@ -1,3 +1,9 @@
 {
-    "java.compile.nullAnalysis.mode": "automatic"
+    "java.compile.nullAnalysis.mode": "automatic",
+    "concertSecureCode.autoScanOnTypingStop": true,
+    "concertSecureCode.autoScanOnSave": true,
+    "concertSecureCode.fixConfidenceThreshold": 90,
+    "concertSecureCode.scanDebounceTime": 4000,
+    "concertSecureCode.apiCallTimeLimit": 20,
+    "concertSecureCode.excludedFiles": ""
 }

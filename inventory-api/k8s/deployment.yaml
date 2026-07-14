@@ -1,4 +1,7 @@
 ---
+# =============================================================================
+# Deployment
+# =============================================================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,10 +23,16 @@ spec:
           image: inventory-api:0.0.1-SNAPSHOT
           ports:
             - containerPort: 8080
-          # VULNERABILITY: Gross over-provisioning.
-          # This lightweight service needs ~0.25 CPU and ~256Mi at most.
-          # Requesting 4 CPU / 8Gi wastes cluster capacity, raises cloud
-          # costs, and can starve other workloads of resources.
+          # ---------------------------------------------------------------
+          # DEMO: Cost-optimisation finding — gross over-provisioning.
+          # A lightweight Spring Boot + H2 service consumes ~0.25 CPU and
+          # ~256 Mi under normal load.  Requesting 4 CPU / 8 Gi:
+          #   • Inflates cloud / infrastructure spend significantly.
+          #   • Reduces the number of pods that can be scheduled per node.
+          #   • Triggers Kubernetes bin-packing failures on smaller nodes.
+          # Recommended fix: right-size to requests≈250m/256Mi,
+          # limits≈500m/512Mi, validated with kubectl top / VPA.
+          # ---------------------------------------------------------------
           resources:
             requests:
               cpu: "4"
@@ -31,20 +40,33 @@ spec:
             limits:
               cpu: "4"
               memory: "8Gi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          # The API key is hardcoded in application.properties and leaked
+          # here as well — echoing it in plain text does not improve the
+          # security posture (see application.properties note).
           env:
-            # Passing the hardcoded key from application.properties through
-            # an env-var does not help when the source is still plain-text.
-            - name: APP_API_KEY
-              value: "a3f8c2d1-9b47-4e6f-82aa-deadbeef0001"
+            - name: SPRING_PROFILES_ACTIVE
+              value: "default"
 ---
+# =============================================================================
+# Service
+# =============================================================================
 apiVersion: v1
 kind: Service
 metadata:
   name: inventory-api
+  labels:
+    app: inventory-api
 spec:
   selector:
     app: inventory-api
   ports:
-    - port: 80
+    - name: http
+      port: 8080
       targetPort: 8080
+      protocol: TCP
   type: ClusterIP
