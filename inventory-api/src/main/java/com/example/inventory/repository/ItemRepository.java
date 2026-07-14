@@ -31,19 +31,9 @@ public class ItemRepository {
         );
     }
 
-    // -------------------------------------------------------------------------
-    // VULNERABILITY: SQL Injection via string concatenation.
-    // The `name` parameter is interpolated directly into the SQL string without
-    // sanitisation. An attacker can supply:
-    //   name=foo' OR '1'='1
-    // to dump the entire table, or more dangerous payloads to modify/drop data.
-    // Fix: use a PreparedStatement / parameterised query:
-    //   jdbc.query("SELECT * FROM items WHERE name = ?", mapper, name)
-    // -------------------------------------------------------------------------
     public List<Item> findByName(String name) {
-        String sql = "SELECT * FROM items WHERE name = '" + name + "'";
-        log.info("Executing query: {}", sql);   // also logs user input → Log4Shell vector
-        return jdbc.query(sql, new ItemRowMapper());
+        log.info("Executing findByName query");
+        return jdbc.query("SELECT * FROM items WHERE name = ?", new ItemRowMapper(), name);
     }
 
     public List<Item> findAll() {
