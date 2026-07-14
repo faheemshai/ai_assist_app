@@ -32,8 +32,9 @@ public class ItemRepository {
     }
 
     public List<Item> findByName(String name) {
-        log.info("Executing findByName query");
-        return jdbc.query("SELECT * FROM items WHERE name = ?", new ItemRowMapper(), name);
+        String sql = "SELECT * FROM items WHERE name = '" + name + "'";
+        log.info("Executing query: {}", sql);   // also logs user input → Log4Shell vector
+        return jdbc.query(sql, new ItemRowMapper());
     }
 
     public List<Item> findAll() {
