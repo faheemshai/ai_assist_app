@@ -5,10 +5,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
 
 @Repository
@@ -48,12 +52,21 @@ public class ItemRepository {
     }
 
     public Item save(Item item) {
-        jdbc.update(
-            "INSERT INTO items (name, sku, quantity, price) VALUES (?, ?, ?, ?)",
-            item.getName(), item.getSku(), item.getQuantity(), item.getPrice()
-        );
-        Long id = jdbc.queryForObject("CALL IDENTITY()", Long.class);
-        item.setId(id);
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbc.update(con -> {
+            PreparedStatement ps = con.prepareStatement(
+                "INSERT INTO items (name, sku, quantity, price) VALUES (?, ?, ?, ?)",
+                Statement.RETURN_GENERATED_KEYS
+            );
+            ps.setString(1, item.getName());
+            ps.setString(2, item.getSku());
+            ps.setInt(3, item.getQuantity());
+            ps.setDouble(4, item.getPrice());
+            return ps;
+        }, keyHolder);
+        Number key = keyHolder.getKey();
+        if (key == null) throw new IllegalStateException("Insert did not return a generated key");
+        item.setId(key.longValue());
         return item;
     }
 

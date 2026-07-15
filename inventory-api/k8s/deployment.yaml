@@ -1,18 +1,31 @@
 ---
 # =============================================================================
-# Deployment
+# DeploymentConfig — uses OpenShift internal registry via ImageStreamTag trigger.
+# Automatically rolls out a new pod whenever oc start-build pushes a new image.
 # =============================================================================
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
 metadata:
   name: inventory-api
+  namespace: demo-inventory-app
   labels:
     app: inventory-api
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app: inventory-api
+    app: inventory-api
+  triggers:
+    # Re-deploy automatically whenever the ImageStream :latest tag is updated
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+          - inventory-api
+        from:
+          kind: ImageStreamTag
+          namespace: demo-inventory-app
+          name: inventory-api:latest
+    - type: ConfigChange
   template:
     metadata:
       labels:
@@ -20,34 +33,23 @@ spec:
     spec:
       containers:
         - name: inventory-api
-          image: inventory-api:0.0.1-SNAPSHOT
+          # Resolved from the internal registry via the ImageStreamTag trigger above
+          image: image-registry.openshift-image-registry.svc:5000/demo-inventory-app/inventory-api:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
-          # ---------------------------------------------------------------
-          # DEMO: Cost-optimisation finding — gross over-provisioning.
-          # A lightweight Spring Boot + H2 service consumes ~0.25 CPU and
-          # ~256 Mi under normal load.  Requesting 4 CPU / 8 Gi:
-          #   • Inflates cloud / infrastructure spend significantly.
-          #   • Reduces the number of pods that can be scheduled per node.
-          #   • Triggers Kubernetes bin-packing failures on smaller nodes.
-          # Recommended fix: right-size to requests≈250m/256Mi,
-          # limits≈500m/512Mi, validated with kubectl top / VPA.
-          # ---------------------------------------------------------------
           resources:
             requests:
-              cpu: "4"
-              memory: "8Gi"
+              cpu: "250m"
+              memory: "256Mi"
             limits:
-              cpu: "4"
-              memory: "8Gi"
+              cpu: "500m"
+              memory: "512Mi"
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
               drop:
                 - ALL
-          # The API key is hardcoded in application.properties and leaked
-          # here as well — echoing it in plain text does not improve the
-          # security posture (see application.properties note).
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "default"
@@ -59,6 +61,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: inventory-api
+  namespace: demo-inventory-app
   labels:
     app: inventory-api
 spec:

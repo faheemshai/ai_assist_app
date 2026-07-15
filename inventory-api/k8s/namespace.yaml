@@ -1,0 +1,7 @@
+apiVersion: project.openshift.io/v1
+kind: ProjectRequest
+metadata:
+  name: demo-inventory-app
+  annotations:
+    openshift.io/description: "Inventory API microservice"
+    openshift.io/display-name: "Demo Inventory App"

@@ -1,0 +1,16 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: inventory-api
+  namespace: demo-inventory-app
+  labels:
+    app: inventory-api
+spec:
+  to:
+    kind: Service
+    name: inventory-api
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

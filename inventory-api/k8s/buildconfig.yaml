@@ -1,0 +1,21 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: inventory-api
+  namespace: demo-inventory-app
+  labels:
+    app: inventory-api
+spec:
+  source:
+    type: Binary
+    binary: {}
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      namespace: demo-inventory-app
+      name: inventory-api:latest
+  triggers: []

@@ -1,8 +1,11 @@
 # =============================================================================
 # Stage 1 – build
 # =============================================================================
-FROM maven:3.8.6-openjdk-11 AS build
+FROM registry.access.redhat.com/ubi8/openjdk-11:latest AS build
+USER root
 WORKDIR /app
+RUN chown -R 185:0 /app
+USER 185
 COPY pom.xml .
 COPY src ./src
 RUN mvn -q package -DskipTests
@@ -21,13 +24,12 @@ RUN mvn -q package -DskipTests
 # the platform injects will inherit the root-group permissions and be able to
 # read/write /app without needing elevated privileges.
 # =============================================================================
-FROM openjdk:11-jre-slim
-WORKDIR /app
+FROM registry.access.redhat.com/ubi8/openjdk-11-runtime:latest
 
-COPY --from=build /app/target/inventory-api-0.0.1-SNAPSHOT.jar app.jar
-
-RUN chgrp -R 0 /app && chmod -R g=u /app
+# ubi8/openjdk-11-runtime defaults to /deployments and USER 185 —
+# both satisfy OpenShift's arbitrary-UID requirement out of the box.
+COPY --from=build /app/target/inventory-api-0.0.1-SNAPSHOT.jar /deployments/app.jar
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "/deployments/app.jar"]
