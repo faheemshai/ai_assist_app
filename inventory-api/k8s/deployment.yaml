@@ -99,6 +99,14 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "default"
+            # Injected from Secret — Spring Boot relaxed binding maps the
+            # env var API_KEY → property api.key, satisfying ${api.key}.
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-api-secrets
+                  key: api.key
+                  optional: false
 ---
 # =============================================================================
 # Service
